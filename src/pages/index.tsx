@@ -1,13 +1,68 @@
 import Head from "next/head";
 import Link from "next/link";
 import { api } from "~/utils/api";
-import { SignIn, SignInButton, useUser, SignOutButton } from "@clerk/nextjs";
+import {  SignInButton, useUser, SignOutButton } from "@clerk/nextjs";
+import type { RouterOutputs } from "~/utils/api";
+import dayjs from 'dayjs'
+import relativeTime from 'dayjs/plugin/relativeTime'
+import Image from "next/image";
+
+dayjs.extend(relativeTime);
+
+const CreatePostWizard = () => {
+  const {user} = useUser();
+
+  console.log(user);
+
+  if(!user) return null;
+
+  return (
+    <div className='flex gap-3 w-full'>
+      <Image 
+        src={user.profileImageUrl} 
+        alt='Profile Image' 
+        className='w-14 h-14 rounded-full' 
+        width={56}
+        height={56}
+      />
+      <input placeholder='Type something...' className='bg-transparent grow outline-none'/>
+    </div>
+  )
+}
+
+type PostWithUser = RouterOutputs['posts']['getAll'][number];
+
+const PostView = (props: PostWithUser) => {
+  const {post, author} = props
+  return (
+    <div className='p-4 border-b b0rder-slate-400 flex gap-3' key={post.id}>
+      <Image 
+        src={author.profileImageUrl} 
+        className='w-14 h-14 rounded-full' 
+        alt={`@${author.username}'s profile picture`} 
+        width={56}
+        height={56}
+        />
+      <div className='flex flex-col'>
+        <div className='flex text-slate-300 gap-1'>
+          <span>{`@${author.username}`}</span>
+          <span className='font-thin'>{` · ${dayjs(post.createdAt).fromNow()}`}</span>
+        </div>
+        <span>{post.content}</span>
+      </div>
+    </div>
+  )
+}
 
 export default function Home() {
 
   const user = useUser();
 
-  const {data} = api.posts.getAll.useQuery();
+  const {data, isLoading} = api.posts.getAll.useQuery();
+
+  if(isLoading) return <div>Loading...</div>
+
+  if(!data) return <div>Something went wrong</div>
 
   return (
     <>
@@ -17,13 +72,20 @@ export default function Home() {
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
-      <main className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-[#2e026d] to-[#15162c]">
-        <div>
-          {!user.isSignedIn && <SignInButton />}
-          {!!user.isSignedIn && <SignOutButton />}
-        </div>
-        <div>
-          {data?.map((post) => (<div key={post.id}>{post.content}</div>))}
+      <main className="flex justify-center h-screen">
+        <div className='w-full md:max-w-2xl h-full border-x border-slate-400'>
+          <div className='border-b border-slate-400 p-4 flex'>
+            {!user.isSignedIn && 
+              <div className='flex justify-center'>
+                <SignInButton />
+              </div>}
+            {user.isSignedIn && <CreatePostWizard />}
+          </div>
+          <div className='flex flex-col'>
+            {[...data, ...data]?.map(( fullPost) => (
+              <PostView {...fullPost} key={fullPost.post.id} />
+            ))}
+          </div>
         </div>
       </main>
     </>
