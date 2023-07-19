@@ -4,4 +4,11 @@
 
 body {
     @apply bg-black text-slate-100;
+
+    overscroll-behavior: none;
+    ::-webkit-scrollbar {
+        width: 0px;
+        background: transparent;
+    }
+
 }
